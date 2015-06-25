@@ -211,9 +211,9 @@
                                 /**
                                  *  # H1 Text - ###### H6 Text
                                  */
-                                if (null !== md.vs.nowv.match(/^#{1,6}\s/)) {
+                                if (null !== md.vs.nowv.match(/^#{1,6}\s*/)) {
                                     var tag  = "h" + md.vs.nowv.match(/^#{1,6}/)[0].length;
-                                    var text = md.vs.nowv.replace(/^#{1,6}\s/, "")
+                                    var text = md.vs.nowv.replace(/^#{1,6}\s*/, "")
                                     md.convert.push(tag, text).pop();
                                 } else if (md.check.isset(md.vs.nowv) && md.vs.nexv) {
                                     if (md.convert.inStack("h")) {
@@ -463,6 +463,7 @@
                                         }
 
                                         var getTitle = function(src) {
+                                            var title = null;
                                             src = src.replace(/\\/g, "\\\\")
                                                      .replace(/\*/g, "\\*")
                                                      .replace(/\(/g, "\\(")
@@ -475,7 +476,6 @@
                                                      .replace(/\|/g, "\\|")
                                                      .replace(/\//g, "\\/");
 
-                                            var title = null;
                                             var matches = new RegExp("\\[" + src + "\\]:", "i");
 
                                             $.each(md.variable.editbody, function(i, v) {
@@ -494,12 +494,11 @@
 
                                         var createtags = function(src, alt, title) {
                                             if (null !== md.vs.nowv.match(/!/)) {
-                                                var img = md.convert.push("img").pop((title ? "title" : "default_"), [src, alt, title]);
-                                                var a   = md.convert.push("a").pushest(img).pop("target_blank", [src]);
-                                            } else {
-                                                a = md.convert.push("a").pop((title ? "title" : "default_"), [src, alt, title]);
+                                                return md.convert.push("img").pop((title ? "title" : "default_"), [src, alt, title]);
+                                            } 
+                                            else {
+                                                return md.convert.push("a").pop((title ? "title" : "default_"), [src, alt, title]);
                                             }
-                                            return a;
                                         }
 
                                         while (null !== md.vs.nowv.match(/!?\[.*?\]\(.*?\)/)) {
@@ -510,28 +509,32 @@
                                             md.vs.nowv = md.vs.nowv.replace(a_match[0], a);
                                         }
 
-                                        if (null !== md.vs.nowv.match(/!?\[.*\]\[.*\]/)) {
-                                            var alt = md.vs.nowv.replace(/!?\[(.*)\]\[.*\]/, "$1");
-                                            var src = md.vs.nowv.replace(/!?\[.*\]\[(.*)\]/, "$1");
-
-                                            var title_matches = getTitle(src);
-                                            src   = title_matches[0];
-                                            title = title_matches[1];
-
-                                            md.vs.nowv = createtags(src, alt, title);
-                                        }
-
-                                        if (null !== md.vs.nowv.match(/!?\[.*\]/)) {
-                                            var alt = src = md.vs.nowv.replace(/^.*?!?\[(.*)\].*?/, "$1");
+                                        if (null !== md.vs.nowv.match(/!?\[.*?\]\[.*?\]/)) {
+                                            var alt = md.vs.nowv.replace(/^.*?!?\[(.*?)\]\[.*?\].*/, "$1");
+                                            var src = md.vs.nowv.replace(/^.*?!?\[.*?\]\[(.*?)\].*/, "$1");
 
                                             var title_matches = getTitle(src);
                                             src   = title_matches[0];
                                             title = title_matches[1];
 
                                             var a = createtags(src, alt, title);
-                                            md.vs.nowv = md.vs.nowv.replace(/^(.*)?!?\[(.*)\](.*)?/, "$1" + a + "$3");
+                                            md.vs.nowv = md.vs.nowv.replace(/^(.*)?(!?\[.*?\]\[.*?\])(.*)?/, "$1" + a + "$3");
                                         }
 
+                                        if (null !== md.vs.nowv.match(/!?\[.*?\]/)) {
+                                            var alt = src = md.vs.nowv.replace(/^.*?!?\[(.*?)\].*?/, "$1");
+
+                                            var title_matches = getTitle(src);
+                                            src   = title_matches[0];
+                                            title = title_matches[1];
+
+                                            var a = createtags(src, alt, title);
+                                            md.vs.nowv = md.vs.nowv.replace(/^(.*)?!?\[(.*?)\](.*)?/, "$1" + a + "$3");
+                                        }
+
+                                        // Remove ! before images. None of the above code is readable so I have to do it this way
+                                        md.vs.nowv = md.vs.nowv.replace(/(.*)!(\<img.+)/,"$1$2");
+                                        
                                         if (typeof md.vs.nexv !== 'undefined') {
                                             if (md.convert.inStack("p")) {
                                                 if (md.vs.nexv.match(/^=+$/)) {
@@ -646,7 +649,7 @@
                     var v = ($(v).val() || $(v).html());
                     markdownconvert += markdownConvert.apply(this, [v]);
                 });
-                $(this).addClass("markdown-body").html(markdownconvert);
+                $(".markdown").addClass("markdown-body").html(markdownconvert);
 
             });
 
